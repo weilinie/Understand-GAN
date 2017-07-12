@@ -16,6 +16,7 @@ class GAN_model(object):
         self.dataset = config.dataset_img
         self.data_path = config.data_path
         self.split = config.split
+        self.n_hidden_layers = config.n_hidden_layers
 
         self.beta1 = config.beta1
         self.beta2 = config.beta2
@@ -75,7 +76,8 @@ class GAN_model(object):
 
         fake_data, g_vars = generator(
             self.g_net, self.z, self.conv_hidden_num,
-            self.img_dim, img_chs, self.normalize_g, reuse=False
+            self.img_dim, img_chs, self.normalize_g, reuse=False,
+            n_hidden_layers=self.n_hidden_layers
         )
 
         self.fake_data = tf.clip_by_value((fake_data + 1)*127.5, 0, 255) # Denormalization
@@ -131,7 +133,8 @@ class GAN_model(object):
         self.z_test = tf.placeholder(dtype=tf.float32, shape=[None, self.z_dim])
         samples_test, _ = generator(
             self.g_net, self.z_test, self.conv_hidden_num,
-            self.img_dim, img_chs, self.normalize_g
+            self.img_dim, img_chs, self.normalize_g,
+            n_hidden_layers=self.n_hidden_layers
         )
         self.sample_test_normz = samples_test
         self.samples_test = tf.clip_by_value((samples_test + 1) * 127.5, 0, 255)  # Denormalization

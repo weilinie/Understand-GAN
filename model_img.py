@@ -6,15 +6,15 @@ import tensorflow.contrib.layers as tcl
 from utils import resBlock, leaky_relu, layer_norm
 
 
-def generator(net, z, hidden_num, output_dim, out_channels, normalize_g, is_train=True, reuse=True):
+def generator(net, z, hidden_num, output_dim, out_channels, normalize_g, is_train=True, reuse=True, n_hidden_layers=1):
     if net == 'ResNet':
         return generatorResNet(z, hidden_num, output_dim, out_channels, reuse)
     elif net == 'DCGAN':
         return generatorDCGAN(z, hidden_num, output_dim, out_channels, normalize_g, is_train, reuse)
     elif net == 'MLP':
-        return generatorMLP(z, output_dim, out_channels, normalize_g, is_train, reuse)
+        return generatorMLP(z, output_dim, out_channels, normalize_g, is_train, reuse, n_hidden_layers=n_hidden_layers)
     elif net == 'MLP_gmm':
-        return generatorMLP_gmm(z, output_dim, out_channels, normalize_g, is_train, reuse)
+        return generatorMLP_gmm(z, output_dim, out_channels, normalize_g, is_train, reuse, n_hidden_layers=n_hidden_layers)
     else:
         raise Exception('[!] Caution! unknown generator type.')
 
@@ -230,7 +230,7 @@ def discriminatorDCGAN(x, hidden_num, normalize_d, is_train, reuse, kern_size=5)
 # -------------------------------------------------
 # +++++++++++++++++++++ MLP +++++++++++++++++++++++
 # -------------------------------------------------
-def generatorMLP(z, output_dim, out_channels, normalize_g, is_train, reuse, hidden_num=512, n_layers=0):
+def generatorMLP(z, output_dim, out_channels, normalize_g, is_train, reuse, hidden_num=512, n_hidden_layers=1):
     '''
     Default values:
     :param reuse: True
@@ -257,30 +257,31 @@ def generatorMLP(z, output_dim, out_channels, normalize_g, is_train, reuse, hidd
             normalizer_fn = None
             normalizer_params = None
 
-        output = tcl.fully_connected(
-            z, hidden_num,
-            activation_fn=tf.nn.relu,
-            normalizer_fn=normalizer_fn,
-            normalizer_params=normalizer_params
-        )
-        for i in range(n_layers):
-            output = tcl.fully_connected(
-                output, hidden_num,
-                activation_fn=tf.nn.relu,
-                normalizer_fn = normalizer_fn,
-                normalizer_params = normalizer_params
+        if n_hidden_layers < 0:
+            fc = tcl.fully_connected(
+                z, output_dim * output_dim * out_channels,
+                activation_fn=None,
+                normalizer_fn=normalizer_fn,
+                normalizer_params=normalizer_params
             )
-        fc = tcl.fully_connected(
-            output, output_dim*output_dim*out_channels,
-            activation_fn=None
-        )
-
-        # fc = tcl.fully_connected(
-        #     z, output_dim*output_dim*out_channels,
-        #     activation_fn=None,
-        #     normalizer_fn=normalizer_fn,
-        #     normalizer_params=normalizer_params
-        # )
+        else:
+            output = tcl.fully_connected(
+                z, hidden_num,
+                activation_fn=tf.nn.relu,
+                normalizer_fn=normalizer_fn,
+                normalizer_params=normalizer_params
+            )
+            for i in range(n_hidden_layers):
+                output = tcl.fully_connected(
+                    output, hidden_num,
+                    activation_fn=tf.nn.relu,
+                    normalizer_fn = normalizer_fn,
+                    normalizer_params = normalizer_params
+                )
+            fc = tcl.fully_connected(
+                output, output_dim*output_dim*out_channels,
+                activation_fn=None
+            )
 
         gen_out = tf.reshape(fc, [-1, output_dim, output_dim, out_channels])
 
@@ -320,7 +321,7 @@ def discriminatorMLP(x, normalize_d, is_train, reuse, hidden_num=512, n_layers=3
 # -------------------------------------------------
 # +++++++++++++++++ MLP for GMM +++++++++++++++++++
 # -------------------------------------------------
-def generatorMLP_gmm(z, output_dim, out_channels, normalize_g, is_train, reuse, hidden_num=512, n_layers=3):
+def generatorMLP_gmm(z, output_dim, out_channels, normalize_g, is_train, reuse, hidden_num=512, n_hidden_layers=1):
     '''
     Default values:
     :param reuse: True
@@ -347,30 +348,31 @@ def generatorMLP_gmm(z, output_dim, out_channels, normalize_g, is_train, reuse, 
             normalizer_fn = None
             normalizer_params = None
 
-        output = tcl.fully_connected(
-            z, hidden_num,
-            activation_fn=tf.nn.relu,
-            normalizer_fn=normalizer_fn,
-            normalizer_params=normalizer_params
-        )
-        for i in range(n_layers):
-            output = tcl.fully_connected(
-                output, hidden_num,
-                activation_fn=tf.nn.relu,
-                normalizer_fn = normalizer_fn,
-                normalizer_params = normalizer_params
+        if n_hidden_layers < 0:
+            fc = tcl.fully_connected(
+                z, output_dim * output_dim * out_channels,
+                activation_fn=None,
+                normalizer_fn=normalizer_fn,
+                normalizer_params=normalizer_params
             )
-        fc = tcl.fully_connected(
-            output, output_dim,
-            activation_fn=None
-        )
-
-        # fc = tcl.fully_connected(
-        #     z, 1*output_dim*out_channels,
-        #     activation_fn=None,
-        #     normalizer_fn=normalizer_fn,
-        #     normalizer_params=normalizer_params
-        # )
+        else:
+            output = tcl.fully_connected(
+                z, hidden_num,
+                activation_fn=tf.nn.relu,
+                normalizer_fn=normalizer_fn,
+                normalizer_params=normalizer_params
+            )
+            for i in range(n_hidden_layers):
+                output = tcl.fully_connected(
+                    output, hidden_num,
+                    activation_fn=tf.nn.relu,
+                    normalizer_fn = normalizer_fn,
+                    normalizer_params = normalizer_params
+                )
+            fc = tcl.fully_connected(
+                output, output_dim*output_dim*out_channels,
+                activation_fn=None
+            )
 
         gen_out = tf.reshape(fc, [-1, 1, output_dim, out_channels])
 

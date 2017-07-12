@@ -15,6 +15,7 @@ class GAN_model(object):
         self.g_net = config.g_net
         self.dataset = config.dataset_img
         self.data_path = config.data_path
+        self.n_hidden_layers = config.n_hidden_layers
 
         self.beta1 = config.beta1
         self.beta2 = config.beta2
@@ -70,7 +71,8 @@ class GAN_model(object):
 
         fake_data, g_vars = generator(
             self.g_net, self.z, self.conv_hidden_num,
-            self.img_dim, img_chs, self.normalize_g, reuse=False
+            self.img_dim, img_chs, self.normalize_g, reuse=False,
+            n_hidden_layers=self.n_hidden_layers
         )
 
         self.fake_data = tf.clip_by_value(fake_data * 255, 0, 255) # Denormalization
